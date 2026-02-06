@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RemoteIQ™ Mobile PWA — Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c0f14;
+    --surface: #161a22;
+    --surface-2: #1e232d;
+    --border: #2a303c;
+    --text: #e8eaf0;
+    --text-muted: #8891a4;
+    --accent: #0ea5e9;
+    --accent-glow: rgba(14, 165, 233, 0.25);
+    --caption-bg: rgba(12, 15, 20, 0.92);
+    --green: #22c55e;
+    --blue: #3b82f6;
+    --red: #ef4444;
+    --amber: #f59e0b;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px 60px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 36px;
+    max-width: 720px;
+  }
+  .header .badge {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-glow);
+    border: 1px solid rgba(14, 165, 233, 0.3);
+    padding: 5px 14px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+  }
+  .header h1 {
+    font-size: clamp(24px, 4vw, 36px);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #e8eaf0 30%, var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .header p {
+    color: var(--text-muted);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* Player Container */
+  .player-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    background: var(--surface);
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    box-shadow: 0 20px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03) inset;
+  }
+
+  .phone-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 886 / 720;
+  }
+
+  video {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+    background: #000;
+  }
+
+  /* Caption Overlay */
+  .caption-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 16px 18px;
+    background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.6) 60%, transparent 100%);
+    pointer-events: none;
+    min-height: 80px;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .caption-text {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.5;
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  .caption-text.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .caption-text .highlight {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* Controls Bar */
+  .controls {
+    padding: 14px 18px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+  }
+
+  .progress-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .time-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    min-width: 42px;
+  }
+
+  .progress-bar {
+    flex: 1;
+    height: 5px;
+    background: var(--surface-2);
+    border-radius: 3px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    width: 0%;
+    transition: width 0.1s linear;
+    position: relative;
+  }
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    right: -4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent-glow);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .progress-bar:hover .progress-fill::after {
+    opacity: 1;
+  }
+
+  .btn-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+  }
+
+  .btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+  .btn:hover { color: var(--text); background: var(--surface-2); }
+  .btn svg { width: 18px; height: 18px; }
+
+  .btn-play {
+    width: 48px;
+    height: 48px;
+    background: var(--accent);
+    border-radius: 50%;
+    color: #fff;
+    box-shadow: 0 4px 20px var(--accent-glow);
+  }
+  .btn-play:hover { background: #38bdf8; color: #fff; }
+  .btn-play svg { width: 20px; height: 20px; }
+
+  /* Section Timeline */
+  .timeline {
+    width: 100%;
+    max-width: 420px;
+    margin-top: 28px;
+  }
+
+  .timeline-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  .timeline-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+  }
+  .timeline-item:hover {
+    background: var(--surface);
+    border-color: var(--border);
+  }
+  .timeline-item.active {
+    background: var(--surface);
+    border-color: var(--accent);
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
+
+  .timeline-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+  .timeline-item.active .timeline-dot { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+
+  .timeline-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    flex: 1;
+    transition: color 0.2s;
+  }
+  .timeline-item.active .timeline-label { color: var(--text); }
+
+  .timeline-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* Speed control */
+  .speed-control {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .speed-control:hover { color: var(--text); border-color: var(--accent); }
+
+  @media (max-width: 480px) {
+    body { padding: 20px 12px 40px; }
+    .player-wrapper { border-radius: 16px; }
+    .caption-text { font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="badge">Product Demo</div>
+  <h1>RemoteIQ™ Mobile App</h1>
+  <p>Monitor industrial equipment from anywhere — real-time engine data, fuel levels, GPS location, and device status at your fingertips.</p>
+</div>
+
+<div class="player-wrapper">
+  <div class="phone-frame">
+    <video id="video" preload="metadata">
+      <source src="riqmobilesm2.mp4" type="video/mp4">
+    </video>
+    <div class="caption-overlay">
+      <div class="caption-text" id="caption"></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="progress-row">
+      <span class="time-label" id="currentTime">0:00</span>
+      <div class="progress-bar" id="progressBar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <span class="time-label" id="duration">0:00</span>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="btnRewind" title="Back 10s">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg>
+      </button>
+      <button class="btn btn-play" id="btnPlay" title="Play/Pause">
+        <svg id="iconPlay" viewBox="0 0 24 24" fill="currentColor"><polygon points="6,3 20,12 6,21"/></svg>
+        <svg id="iconPause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="5" y="3" width="4" height="18"/><rect x="15" y="3" width="4" height="18"/></svg>
+      </button>
+      <button class="btn" id="btnForward" title="Forward 10s">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg>
+      </button>
+      <button class="speed-control" id="btnSpeed">1×</button>
+    </div>
+  </div>
+</div>
+
+<div class="timeline">
+  <div class="timeline-title">Chapters</div>
+  <div id="chapters"></div>
+</div>
+
+<script>
+const captions = [
+  { start: 0,   end: 3,   text: 'Launch the <span class="highlight">RemoteIQ</span> app from the iPhone home screen' },
+  { start: 3,   end: 7,   text: 'The <span class="highlight">sign-in screen</span> loads — a service of Cattron Global' },
+  { start: 7,   end: 12,  text: 'Enter email and password credentials to authenticate' },
+  { start: 12,  end: 17,  text: '<span class="highlight">Device dashboard</span> loads — showing all 100 connected devices with status indicators' },
+  { start: 17,  end: 22,  text: 'Open the <span class="highlight">status filter</span> — options include All Statuses, Online, Engine Running, and Offline' },
+  { start: 22,  end: 27,  text: 'Filter to <span class="highlight">Online</span> — 5 of 100 devices are currently connected (green indicators)' },
+  { start: 27,  end: 34,  text: 'Switch to <span class="highlight">Engine Running</span> filter — 2 devices actively running (blue indicators)' },
+  { start: 34,  end: 42,  text: 'Return to <span class="highlight">All Statuses</span> view to see the full fleet' },
+  { start: 42,  end: 48,  text: 'Tap the <span class="highlight">search bar</span> to find a specific device by name or ESN' },
+  { start: 48,  end: 56,  text: 'Type "<span class="highlight">0042</span>" — instantly filters to 1 matching device from the fleet' },
+  { start: 56,  end: 64,  text: 'Clear search and return to the full device list' },
+  { start: 64,  end: 70,  text: 'Filter to <span class="highlight">Engine Running</span> and select a device to view details' },
+  { start: 70,  end: 76,  text: '<span class="highlight">Engine data</span> — Speed: 1200 RPM, Hours: 4516.4 hrs, Temp: 82°F, Oil Pressure: 56.3 PSI' },
+  { start: 76,  end: 82,  text: '<span class="highlight">Power &amp; Fuel</span> — Battery: 28.1V, Fuel Level: 100%, Fuel Rate: 26.5 L/hr, Total Fuel: 161,658 L' },
+  { start: 82,  end: 88,  text: '<span class="highlight">Status</span> — GPS Location, Cell Signal strength, Last Update: 2/2/2026 at 2:23 PM' },
+  { start: 88,  end: 96,  text: 'Tap the GPS coordinates to open the location in <span class="highlight">Google Maps</span>' },
+  { start: 96,  end: 108, text: 'Satellite view reveals the <span class="highlight">remote well site</span> near Carlsbad, New Mexico' },
+  { start: 108, end: 120, text: 'Zoom in on satellite imagery — equipment clearly visible at the site' },
+  { start: 120, end: 128, text: 'Tap <span class="highlight">Directions</span> to plan a route from your current location' },
+  { start: 128, end: 134, text: 'Route calculated — <span class="highlight">457 miles, ~7.5 hours</span> drive from Austin to the device site' },
+  { start: 134, end: 140, text: 'Return to RemoteIQ and review <span class="highlight">device telemetry</span> one more time' },
+  { start: 140, end: 144, text: 'Full engine and fuel data available at a glance — <span class="highlight">monitor your fleet from anywhere</span>' }
+];
+
+const chapters = [
+  { time: 0,   label: 'App Launch & Login' },
+  { time: 12,  label: 'Device Dashboard' },
+  { time: 17,  label: 'Status Filtering' },
+  { time: 42,  label: 'Search by ESN' },
+  { time: 70,  label: 'Engine Telemetry' },
+  { time: 76,  label: 'Power & Fuel Data' },
+  { time: 82,  label: 'Status & Location' },
+  { time: 88,  label: 'Google Maps Integration' },
+  { time: 120, label: 'Route Planning' },
+  { time: 134, label: 'Return to Dashboard' }
+];
+
+const video = document.getElementById('video');
+const captionEl = document.getElementById('caption');
+const progressFill = document.getElementById('progressFill');
+const progressBar = document.getElementById('progressBar');
+const currentTimeEl = document.getElementById('currentTime');
+const durationEl = document.getElementById('duration');
+const btnPlay = document.getElementById('btnPlay');
+const iconPlay = document.getElementById('iconPlay');
+const iconPause = document.getElementById('iconPause');
+const btnRewind = document.getElementById('btnRewind');
+const btnForward = document.getElementById('btnForward');
+const btnSpeed = document.getElementById('btnSpeed');
+const chaptersEl = document.getElementById('chapters');
+
+let currentCaption = -1;
+const speeds = [1, 1.25, 1.5, 2, 0.75];
+let speedIdx = 0;
+
+function formatTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return m + ':' + String(sec).padStart(2, '0');
+}
+
+// Build chapters
+chapters.forEach((ch, i) => {
+  const div = document.createElement('div');
+  div.className = 'timeline-item';
+  div.dataset.index = i;
+  div.innerHTML = `
+    <div class="timeline-dot"></div>
+    <div class="timeline-label">${ch.label}</div>
+    <div class="timeline-time">${formatTime(ch.time)}</div>
+  `;
+  div.addEventListener('click', () => {
+    video.currentTime = ch.time;
+    if (video.paused) video.play();
+  });
+  chaptersEl.appendChild(div);
+});
+
+const chapterItems = document.querySelectorAll('.timeline-item');
+
+video.addEventListener('loadedmetadata', () => {
+  durationEl.textContent = formatTime(video.duration);
+});
+
+video.addEventListener('timeupdate', () => {
+  const t = video.currentTime;
+  const pct = (t / video.duration) * 100;
+  progressFill.style.width = pct + '%';
+  currentTimeEl.textContent = formatTime(t);
+
+  // Update caption
+  let found = -1;
+  for (let i = 0; i < captions.length; i++) {
+    if (t >= captions[i].start && t < captions[i].end) {
+      found = i;
+      break;
+    }
+  }
+  if (found !== currentCaption) {
+    currentCaption = found;
+    if (found >= 0) {
+      captionEl.classList.remove('visible');
+      setTimeout(() => {
+        captionEl.innerHTML = captions[found].text;
+        captionEl.classList.add('visible');
+      }, 150);
+    } else {
+      captionEl.classList.remove('visible');
+    }
+  }
+
+  // Update active chapter
+  let activeChapter = 0;
+  for (let i = chapters.length - 1; i >= 0; i--) {
+    if (t >= chapters[i].time) { activeChapter = i; break; }
+  }
+  chapterItems.forEach((el, i) => {
+    el.classList.toggle('active', i === activeChapter);
+  });
+});
+
+video.addEventListener('play', () => {
+  iconPlay.style.display = 'none';
+  iconPause.style.display = 'block';
+});
+video.addEventListener('pause', () => {
+  iconPlay.style.display = 'block';
+  iconPause.style.display = 'none';
+});
+
+btnPlay.addEventListener('click', () => {
+  video.paused ? video.play() : video.pause();
+});
+
+btnRewind.addEventListener('click', () => {
+  video.currentTime = Math.max(0, video.currentTime - 10);
+});
+
+btnForward.addEventListener('click', () => {
+  video.currentTime = Math.min(video.duration, video.currentTime + 10);
+});
+
+btnSpeed.addEventListener('click', () => {
+  speedIdx = (speedIdx + 1) % speeds.length;
+  video.playbackRate = speeds[speedIdx];
+  btnSpeed.textContent = speeds[speedIdx] + '×';
+});
+
+progressBar.addEventListener('click', (e) => {
+  const rect = progressBar.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  video.currentTime = pct * video.duration;
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); video.paused ? video.play() : video.pause(); }
+  if (e.code === 'ArrowLeft') { video.currentTime = Math.max(0, video.currentTime - 5); }
+  if (e.code === 'ArrowRight') { video.currentTime = Math.min(video.duration, video.currentTime + 5); }
+});
+</script>
+</body>
+</html>
